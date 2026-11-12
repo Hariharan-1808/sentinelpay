@@ -50,7 +50,9 @@ app.get("/api/health", (_req, res) => {
       process.env.PAYPAL_SANDBOX_RECIPIENT_EMAIL?.trim()
     ),
     geminiConfigured: Boolean(process.env.GEMINI_API_KEY?.trim()),
+    geminiModel: process.env.GEMINI_MODEL?.trim() || "gemini-3.1-flash-lite",
     channel3Configured: Boolean(process.env.CHANNEL3_API_KEY?.trim()),
+    nodeVersion: process.version,
   });
 });
 

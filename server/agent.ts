@@ -36,9 +36,14 @@ function getGeminiClient(): { ai: GoogleGenAI; models: string[] } {
     "gemini-flash-lite-latest",
   ];
   return {
-    ai: new GoogleGenAI({ apiKey, httpOptions: { timeout: 9000 } }),
+    ai: new GoogleGenAI({ apiKey, httpOptions: { timeout: 20000 } }),
     models: Array.from(new Set(fallbacks)),
   };
+}
+
+function formatModelError(model: string, err: unknown): string {
+  const msg = err instanceof Error ? err.message : String(err);
+  return `[${model}] ${msg.slice(0, 180)}`;
 }
 
 async function callSingleGemini<T>(
@@ -73,11 +78,23 @@ async function generateStructuredJson<T>(
   } catch (primaryErr) {
     console.warn(`Primary model ${primary} failed, racing backups:`, primaryErr);
     if (backups.length === 0) throw primaryErr;
-    return await Promise.any(
-      backups.map((model) =>
-        callSingleGemini<T>(ai, model, contents, responseSchema)
-      )
-    );
+    try {
+      return await Promise.any(
+        backups.map((model) =>
+          callSingleGemini<T>(ai, model, contents, responseSchema)
+        )
+      );
+    } catch (aggErr) {
+      const details = [formatModelError(primary, primaryErr)];
+      if (aggErr instanceof AggregateError) {
+        aggErr.errors.forEach((e, idx) =>
+          details.push(formatModelError(backups[idx] || `backup-${idx}`, e))
+        );
+      } else {
+        details.push(formatModelError("backups", aggErr));
+      }
+      throw new Error(`Gemini calls failed: ${details.join(" | ")}`);
+    }
   }
 }
 
