@@ -163,12 +163,13 @@ export function injectFault(
   if (!node) return undefined;
 
   node.activeFault = preset;
-  // Append 3 progressive degradation samples so the trend is visible in history
-  for (let i = 0; i < 3; i++) {
+  // Reset prior fault history so switching presets produces a clean baseline-to-fault trend
+  node.history = seedHistory(node.baseline).slice(0, MAX_HISTORY - 5);
+  for (let i = 0; i < 5; i++) {
     const { point, status } = computeFaultPoint(node);
     node.telemetry = point;
     node.status = status;
-    node.history = [...node.history.slice(-(MAX_HISTORY - 1)), point];
+    node.history.push(point);
   }
   return node;
 }
@@ -179,8 +180,7 @@ export function resetNode(nodeId: string): IoTNode | undefined {
 
   node.activeFault = null;
   node.status = "HEALTHY";
-  const point = buildBaselinePoint(node.baseline);
-  node.telemetry = point;
-  node.history = [...node.history.slice(-(MAX_HISTORY - 1)), point];
+  node.history = seedHistory(node.baseline);
+  node.telemetry = node.history[node.history.length - 1];
   return node;
 }
