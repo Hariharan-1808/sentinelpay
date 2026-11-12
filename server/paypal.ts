@@ -172,7 +172,7 @@ export async function sendAutonomousPayout(params: {
       sender_batch_header: {
         sender_batch_id: batchSenderId,
         email_subject: "SentinelPay Autonomous Parts Procurement",
-        email_message: params.note,
+        email_message: params.note.slice(0, 200),
       },
       items: [
         {
@@ -181,8 +181,8 @@ export async function sendAutonomousPayout(params: {
             value: params.amountUsd.toFixed(2),
             currency: "USD",
           },
-          note: params.note,
-          sender_item_id: params.itemId,
+          note: params.note.slice(0, 200),
+          sender_item_id: params.itemId.slice(0, 63),
           receiver: recipientEmail,
         },
       ],
@@ -193,10 +193,12 @@ export async function sendAutonomousPayout(params: {
     batch_header?: { payout_batch_id: string; batch_status: string };
     name?: string;
     message?: string;
+    details?: Array<{ field?: string; issue?: string }>;
   };
   if (!res.ok || !data.batch_header?.payout_batch_id) {
+    const details = data.details ? ` ${JSON.stringify(data.details)}` : "";
     throw new Error(
-      `PayPal Payouts failed (${res.status}): ${data.name || ""} ${data.message || JSON.stringify(data)}`
+      `PayPal Payouts failed (${res.status}): ${data.name || ""} ${data.message || JSON.stringify(data)}${details}`
     );
   }
 
