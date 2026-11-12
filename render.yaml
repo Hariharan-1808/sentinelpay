@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: sentinelpay
+    runtime: node
+    plan: free
+    buildCommand: npm install --include=dev && npm --prefix client install --include=dev && npm run build && npm --prefix client run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: PAYPAL_ENV
+        value: sandbox
+      - key: AUTO_PAY_LIMIT_USD
+        value: "50"
+      - key: DAILY_SPEND_CAP_USD
+        value: "150"
+      - key: MIN_CONFIDENCE
+        value: "0.85"
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: PAYPAL_SANDBOX_RECIPIENT_EMAIL
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: CHANNEL3_API_KEY
+        sync: false

@@ -1,0 +1,100 @@
+export type NodeHealth = "HEALTHY" | "WARNING" | "CRITICAL";
+
+export type FaultPreset =
+  | "cooling_fan_wear"
+  | "spindle_controller_burnout"
+  | "ambiguous_drift";
+
+export interface TelemetryPoint {
+  timestamp: string;
+  tempC: number;
+  vibrationMmS: number;
+  fanRpm: number;
+  currentAmps: number;
+}
+
+export interface TelemetryBaseline {
+  tempC: number;
+  vibrationMmS: number;
+  fanRpm: number;
+  currentAmps: number;
+}
+
+export interface IoTNode {
+  id: string;
+  name: string;
+  location: string;
+  machineType: string;
+  status: NodeHealth;
+  uptimeHours: number;
+  telemetry: TelemetryPoint;
+  baseline: TelemetryBaseline;
+  history: TelemetryPoint[];
+  activeFault: FaultPreset | null;
+}
+
+export interface DiagnosisResult {
+  actionNeeded: boolean;
+  failingComponent: string;
+  severity: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+  confidence: number;
+  reasoning: string;
+  recommendedPartQuery: string;
+  estimatedFailureWindowHours: number;
+}
+
+export interface CatalogCandidate {
+  id: string;
+  title: string;
+  priceUsd: number;
+  currency: string;
+  vendor: string;
+  url: string;
+  imageUrl?: string;
+  availability: string;
+  source: "CHANNEL3" | "FALLBACK_CATALOG";
+}
+
+export interface PolicyCheck {
+  rule: string;
+  passed: boolean;
+  detail: string;
+}
+
+export type PolicyAction =
+  | "AUTO_PAYOUT"
+  | "HITL_ORDER_APPROVAL"
+  | "NO_ACTION";
+
+export interface PolicyConfig {
+  autoPayLimitUsd: number;
+  dailySpendCapUsd: number;
+  minConfidence: number;
+}
+
+export interface PolicyDecision {
+  action: PolicyAction;
+  reasons: string[];
+  checks: PolicyCheck[];
+}
+
+export interface ProcurementRecord {
+  id: string;
+  timestamp: string;
+  nodeId: string;
+  nodeName: string;
+  failingComponent: string;
+  confidence: number;
+  selectedPartTitle: string;
+  selectedPartUrl?: string;
+  catalogSource: "CHANNEL3" | "FALLBACK_CATALOG";
+  amountUsd: number;
+  vendor: string;
+  policyAction: PolicyAction;
+  paypalMethod: "PAYOUT_V1" | "ORDER_V2" | "NONE";
+  paypalTransactionId: string;
+  paypalStatus: string;
+  approveUrl?: string;
+  reasoning: string;
+  policyChecks: PolicyCheck[];
+}
