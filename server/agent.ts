@@ -32,11 +32,12 @@ function getGeminiClient(): { ai: GoogleGenAI; models: string[] } {
   const fallbacks = [
     preferred,
     "gemini-3.1-flash-lite",
-    "gemini-3-flash-preview",
+    "gemini-3.1-flash-lite-preview",
     "gemini-flash-lite-latest",
+    "gemini-3-flash-preview",
   ];
   return {
-    ai: new GoogleGenAI({ apiKey, httpOptions: { timeout: 20000 } }),
+    ai: new GoogleGenAI({ apiKey, httpOptions: { timeout: 15000 } }),
     models: Array.from(new Set(fallbacks)),
   };
 }
@@ -44,6 +45,19 @@ function getGeminiClient(): { ai: GoogleGenAI; models: string[] } {
 function formatModelError(model: string, err: unknown): string {
   const msg = err instanceof Error ? err.message : String(err);
   return `[${model}] ${msg.slice(0, 180)}`;
+}
+
+function isTransientError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return (
+    msg.includes("503") ||
+    msg.includes("504") ||
+    msg.includes("429") ||
+    msg.includes("UNAVAILABLE") ||
+    msg.includes("DEADLINE_EXCEEDED") ||
+    msg.includes("aborted") ||
+    msg.includes("fetch failed")
+  );
 }
 
 async function callSingleGemini<T>(
@@ -76,6 +90,7 @@ async function generateStructuredJson<T>(
   try {
     return await callSingleGemini<T>(ai, primary, contents, responseSchema);
   } catch (primaryErr) {
+    if (!isTransientError(primaryErr)) throw primaryErr;
     console.warn(`Primary model ${primary} failed, racing backups:`, primaryErr);
     if (backups.length === 0) throw primaryErr;
     try {
@@ -85,15 +100,25 @@ async function generateStructuredJson<T>(
         )
       );
     } catch (aggErr) {
-      const details = [formatModelError(primary, primaryErr)];
-      if (aggErr instanceof AggregateError) {
-        aggErr.errors.forEach((e, idx) =>
-          details.push(formatModelError(backups[idx] || `backup-${idx}`, e))
+      // One short backoff retry across all models for transient 503/504 spikes
+      await new Promise((r) => setTimeout(r, 1800));
+      try {
+        return await Promise.any(
+          models.map((model) =>
+            callSingleGemini<T>(ai, model, contents, responseSchema)
+          )
         );
-      } else {
-        details.push(formatModelError("backups", aggErr));
+      } catch {
+        const details = [formatModelError(primary, primaryErr)];
+        if (aggErr instanceof AggregateError) {
+          aggErr.errors.forEach((e, idx) =>
+            details.push(formatModelError(backups[idx] || `backup-${idx}`, e))
+          );
+        } else {
+          details.push(formatModelError("backups", aggErr));
+        }
+        throw new Error(`Gemini calls failed: ${details.join(" | ")}`);
       }
-      throw new Error(`Gemini calls failed: ${details.join(" | ")}`);
     }
   }
 }
