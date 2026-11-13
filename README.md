@@ -3,7 +3,8 @@
 **Autonomous Predictive Maintenance & Procurement Agent for Industrial IoT Fleets**  
 Built for **PayPal AI Hackathon 2026 ("Build What's Next with PayPal and AI")**.
 
-**Live Demo:** [https://sentinelpay-wvkn.onrender.com](https://sentinelpay-wvkn.onrender.com) *(hosted on Render free tier — allow ~50s cold start if idle)*
+**Live Demo:** [https://sentinelpay-wvkn.onrender.com](https://sentinelpay-wvkn.onrender.com) *(hosted on Render free tier — allow ~50s cold start if idle)*  
+**Demo Video:** [Watch Walkthrough on YouTube](https://youtu.be/8IJnTMmaGvM)
 
 ---
 
